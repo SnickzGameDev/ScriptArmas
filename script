@@ -1,0 +1,141 @@
+                                    /* ----------------- CRIADOR DO SCRIPT: SNICKZ ----------------- */
+                                /* ----------------- DISCORD DO CRIADOR: Snickz#9404 ----------------- */
+
+using System.Collections.Generic;
+using System.Collections;
+using System;
+using UnityEngine.UI;
+using UnityEngine;
+
+[Serializable]
+public class Arma2
+{
+    /* ----------------- CONFIGURAÇÃO DA ARMA ----------------- */
+    #region CONFIGURAÇÃO DA ARMA
+
+    [Header("Configuração da Arma")]
+
+    public GameObject objetoArma; // GameObject da Arma (ou prefab)
+    public KeyCode botaoAtirar = KeyCode.Mouse0; // botão para atirar
+    public KeyCode botaoRecarregar = KeyCode.R; // botão para recarregar
+    public bool armaAutomatica; // Define se a arma é automatica ou não
+    public float tempoPorTiro = 0.33f; // Tempo de cada tiro da arma
+    public float tempoDaRecarga = 1; // Tempo de recarregamento da arma
+    public int municao; // Não alterar, se quiser aumentar o número de munição por arma, é o de baixo
+    public int municaoPorPente = 30; // Alterar a quantidade de balas que a municao vai ter e vai poder recarregar (recomendo alterar no inspetor)
+    public int cartuchos; // Alterar a quantidade de cartuchos que você vai ter (recomendo alterar no inspetor)
+    [HideInInspector] public bool recarregando; // uma booleana para verificar se está recarregando
+    [HideInInspector] public bool atirando; // uma booleana para verificar se está atirando 
+
+    [Header("Configuração do Som")]
+
+    public AudioSource emissorSom; // Criar um AudioSource para tocar os sons
+    public AudioClip somTiro, somRecarregar, somPegarArma; // Sons para adicionar ao seu game **********
+
+    [Header("Configuração da Bala")]
+
+    public GameObject bala; // GameObject do prefab da bala
+    public TextMesh municaoText, cartuchosText; // Isso vai possibilitar de modificarmos o texto ou fazer qualquer coisa com ele
+    public Transform saidaDaBala; // GameObject na ponta da arma (para bala sair)
+    public float speedBala = 15; // Velocidade que a bala vai percorrer
+    public float alcanceDaBala; // Distancia que ela percorre para não ser destruida
+
+    #endregion
+    /* ----------------- CONFIGURAÇÃO DA ARMA ----------------- */
+}
+
+[RequireComponent(typeof(AudioSource))]
+public class Armas : MonoBehaviour
+{
+    /* ----------------- CONFIGURAÇÃO GERAL DA ARMA ----------------- */
+    #region CONFIGURAÇÃO GERAL DA ARMA 
+
+    [Header("Configuração Geral")]
+
+    public KeyCode botaoPassarArma = KeyCode.E; // botão para passar uma arma
+    public KeyCode botaoVoltarArma = KeyCode.Q; // botão para voltar uma arma
+    public int armaInicial = 0; // ID do Elemento que você botou na arma
+
+
+    [Header("Armas")]
+
+    public Arma2[] armas; // Array/Lista das armas que existem, adicione mais uma arma pelo inspetor
+    [HideInInspector] public int armaAtual; // Não precisa alterar nada aqui, ele vai mostrar o ID do Elemento da arma atual
+
+    #endregion 
+    /* ----------------- CONFIGURAÇÃO GERAL DA ARMA ----------------- */
+
+    void Start()
+    {
+        armas[armaAtual].municao = armas[armaAtual].municaoPorPente; // Está definindo de começo que a munição vai ter a mesma quantidade do limite
+        armaAtual = armaInicial; // Definir a arma Inicial como Atual
+        armas[armaAtual].objetoArma.SetActive(true); // Está ativando a arma
+        armas[armaAtual].emissorSom = GetComponent<AudioSource>(); // Está definindo de começo o AudioSource do Objeto
+    }
+
+    void Update()
+
+    {
+        armas[armaAtual].municaoText.text = armas[armaAtual].municao.ToString();
+        armas[armaAtual].cartuchosText.text = armas[armaAtual].cartuchos.ToString();
+
+
+        
+
+
+        if (Input.GetKey(armas[armaAtual].botaoAtirar) && armas[armaAtual].armaAutomatica && armas[armaAtual].atirando == false && armas[armaAtual].recarregando == false && armas[armaAtual].municao > 0) // Está criando uma condição para uma booleana, sem ! = true, com ! = false, e criando uma condição para quando munição chegar a 0 não executar
+        {
+            Atirar(); // Está executando uma void chamada Atirar()
+            StartCoroutine(TempoParaAtirar(armas[armaAtual].tempoPorTiro)); // Estou executando um IEnumerator que vai fazer um contador
+        }
+        else if (Input.GetKeyDown(armas[armaAtual].botaoAtirar) && !armas[armaAtual].armaAutomatica && armas[armaAtual].atirando == false && armas[armaAtual].recarregando == false && armas[armaAtual].municao > 0) // Está criando uma condição para uma booleana, sem ! = true, com ! = false, e criando uma condição para quando munição chegar a 0 não executar
+        {
+            Atirar(); // Está executando uma void chamada Atirar()
+            StartCoroutine(TempoParaAtirar(armas[armaAtual].tempoPorTiro)); // Estou executando um IEnumerator que vai fazer um contador e executar os comandos dentro dele
+        }
+
+        if (Input.GetKeyDown(armas[armaAtual].botaoRecarregar) && armas[armaAtual].atirando == false && armas[armaAtual].recarregando == false && armas[armaAtual].municao < armas[armaAtual].municaoPorPente && armas[armaAtual].cartuchos > 0)
+        {
+            StartCoroutine(TempoParaRecarregar(armas[armaAtual].tempoDaRecarga)); // Estou executando um IEnumerator que vai fazer um contador e executar os comandos dentro dele
+        }
+    }
+
+    void Atirar() // Crio uma void para ficar mais simples de executarmos a ação de tiro e mais organizado
+    {
+        armas[armaAtual].emissorSom.clip = armas[armaAtual].somTiro;
+        armas[armaAtual].emissorSom.Play();
+        Instantiate(armas[armaAtual].bala, armas[armaAtual].saidaDaBala.position, armas[armaAtual].saidaDaBala.rotation); // Está Instanciando/Spawnando o 1 objeto na posição da saida da bala
+    }
+
+    IEnumerator TempoParaAtirar(float tempo) // Crio um IEnumerator para servir de contador para nosso tiro
+    {
+        armas[armaAtual].atirando = true;
+        armas[armaAtual].emissorSom.clip = armas[armaAtual].somTiro;
+        armas[armaAtual].emissorSom.PlayOneShot(armas[armaAtual].emissorSom.clip);
+        armas[armaAtual].municao--;
+        yield return new WaitForSeconds(tempo);
+        armas[armaAtual].atirando = false;
+    }
+    IEnumerator TempoParaRecarregar(float tempo)// Crio um IEnumerator para servir de contador para nosso tempo de recarga
+    {
+        armas[armaAtual].recarregando = true;
+        yield return new WaitForSeconds(tempo);
+        armas[armaAtual].recarregando = false;
+        armas[armaAtual].cartuchos--;
+        armas[armaAtual].municao = armas[armaAtual].municaoPorPente;
+    }
+
+    void AtivarArmaAtual()
+    {
+        for (int x = 0; x < armas.Length; x++)
+        {
+            armas[x].objetoArma.SetActive(false);
+        }
+        armas[armaAtual].objetoArma.SetActive(true);
+    }
+
+    
+}
+
+                                    /* ----------------- CRIADOR DO SCRIPT: SNICKZ ----------------- */
+                                /* ----------------- DISCORD DO CRIADOR: Snickz#9404 ----------------- */
